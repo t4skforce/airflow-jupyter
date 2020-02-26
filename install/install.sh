@@ -49,7 +49,7 @@ jupyter_enable jupyterlab_templates
 
 header 'JupyterLab jupyter-archive install'
 # https://github.com/hadim/jupyter-archive/
-pip_install jupyter-archive
+conda_install jupyter-archive
 jupyter_enable jupyter_archive
 
 header 'JupyterLab jupyterlab-toc install'
