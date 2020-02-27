@@ -1,0 +1,51 @@
+.git
+Dockerfile
+.DS_Store
+.gitignore
+.dockerignore
+*.log
+logs/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+wheels/
+pip-wheel-metadata/
+*.py[cod]
+*$py.class
+pip-log.txt
+
+# Node.js / npm
+node_modules/
+.node-gyp
+.npm/_logs
+npm-debug.log*
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+pids
+*.pid*
+*.seed*
+*.pid.lock*
+
+# apt stuff
+/var/lib/apt/lists/*
+
+# tmp
+/tmp/*
+/var/tmp/*
+
+# man and doc
+/usr/share/man
+/usr/share/doc
+/usr/share/doc-base
+
+# Sphinx documentation
+docs/_build/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+jupyter/lab/staging
+
+# celery beat schedule file
+celerybeat-schedule
+
+# conda
+.cache/yarn

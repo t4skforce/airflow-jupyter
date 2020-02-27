@@ -13,7 +13,7 @@ declare -a BUILD_DEPENDENCIES=${BUILD_DEPENDENCIES-()}
 # Arguments:
 #   $1 -> String to convert to lower case
 ##################################################################
-function to_lower()
+function to-lower()
 {
     local str="$@"
     local output
@@ -39,17 +39,24 @@ function die()
 #   $1 -> Message
 #   $2 -> length default:60 (optional)
 ##################################################################
-function header()
+function banner()
 {
-  local l=${2-60}
-  python -c 'import sys;print("\033[92m"+"\n".join(["#"*int(sys.argv[2]),"#"+str(sys.argv[1]).center(int(sys.argv[2])-2," ")+"#","#"*int(sys.argv[2])])+"\033[0m",file=sys.stderr)' "$1" "$l"
+  local SIZE=${2-60}
+  local text=${1-'Sample Text'}
+  local str=$(printf "%*s" $(( ($SIZE - 4 - ${#text}) / 2)) "" && printf "%s" "$text" && printf "%*s" $(( ($SIZE - 4 - ${#text}) / 2)) "")
+  local len=$((${#str}+4))
+  tput setaf 2 && \
+  (for i in $(seq $len); do echo -n '#'; done) && echo && \
+  echo "# $str #" && \
+  (for i in $(seq $len); do echo -n '#'; done) && echo && \
+  tput sgr0 && sleep .1 && return $TRUE || return $FALSE
 }
 ##################################################################
 # Purpose: Return true if script is executed by the root user
 # Arguments: none
 # Return: True or False
 ##################################################################
-function is_root()
+function is-root()
 {
    [ $(id -u) -eq 0 ] && return $TRUE || return $FALSE
 }
@@ -59,7 +66,7 @@ function is_root()
 # Arguments: $1 (username) -> Username to check in /etc/passwd
 # Return: True or False
 ##################################################################
-function is_user_exits()
+function user-exits()
 {
     local u="$1"
     grep -q "^${u}" $PASSWD_FILE && return $TRUE || return $FALSE
@@ -67,7 +74,7 @@ function is_user_exits()
 ##################################################################
 # Purpose: check if apt-get update was wriggered
 ##################################################################
-function is_apt_updated()
+function is-apt-updated()
 {
   return $APT_UPDATED
 }
@@ -76,7 +83,7 @@ function is_apt_updated()
 # Arguments: $1 (binaryname)
 # Return: True or False
 ##################################################################
-function is_installed()
+function is-installed()
 {
   hash add-apt-repository 2>/dev/null && return $TRUE || return $FALSE
 }
@@ -84,9 +91,19 @@ function is_installed()
 # Purpose: check if debug is enabled
 # Return: True or False
 ##################################################################
-function is_debug()
+function is-debug()
 {
   [ "$DEBUG" = "true" ] && return $TRUE || return $FALSE
+}
+##################################################################
+# Purpose: run any command silten or with debug output
+# Arguments:
+#   $@ -> command to run
+##################################################################
+function cmd()
+{
+  is-debug && (set -xe; "$@") || (set -xe; "$@" >/dev/null)
+  return $?
 }
 ##################################################################
 # Purpose:
@@ -106,7 +123,7 @@ function is_debug()
 # AND permissions include group rwX (directory-execute)
 # AND directories have setuid,setgid bits set
 ##################################################################
-function fix_permissions()
+function fix-permissions()
 {
   local GID="$1"
   shift # skip first
@@ -128,202 +145,249 @@ function fix_permissions()
   done
 }
 ##################################################################
+# Purpose: generate locales
+##################################################################
+function gen-locales()
+{
+  cmd echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
+  && cmd locale-gen
+  return $?
+}
+##################################################################
+# Purpose: run py.test against a notebook
+# Arguments:
+#   $@ -> py.test --nbval-lax $@
+##################################################################
+function nb-test()
+{
+  py.test --nbval $@
+  return $?
+}
+##################################################################
+# Purpose: add system user
+##################################################################
+function add-user()
+{
+  cmd useradd $@
+  return $?
+}
+##################################################################
+# Purpose: add conda to the system
+##################################################################
+function install-conda()
+{
+  cmd curl $CONDA_URL --output conda.sh --silent \
+  && cmd /bin/bash ./conda.sh -f -b -p "$CONDA_DIR" \
+  && cmd conda config --system --prepend channels conda-forge \
+  && cmd conda config --system --set auto_update_conda false \
+  && cmd conda config --system --set show_channel_urls true \
+  && (set -xe; conda list python | grep '^python ' | tr -s ' ' | cut -d '.' -f 1,2 | sed 's/$/.*/' >> $CONDA_DIR/conda-meta/pinned) \
+  && conda-install conda \
+  && conda-install pip \
+  && cmd conda update --all --quiet --yes || exit 1
+  return $?
+}
+##################################################################
 # Purpose: Remove *.pyc|*.pyo from folder
 # Arguments:
 #   $1 -> Folder location default:'.' (optional)
 ##################################################################
-function pyclean()
+function python-clean()
 {
-  local PATH=${1:-.}
-  (set -x; /usr/bin/find "$1" -regex '^.*\(__pycache__\|\.py[co]\)$' -delete)
+  local DIR=${1:-.}
+  cmd find "$DIR" -regex '^.*\(__pycache__\|\.py[co]\)$' -delete
+  return $?
 }
 ##################################################################
 # Purpose: apt-get update
 ##################################################################
-function apt_update()
+function apt-update()
 {
-  is_debug \
-  && (set -x; apt-get update -yqq) \
-  || (set -x; apt-get update -yqq >/dev/null)
+  cmd apt-get update -yqq
+  local EXITCODE=$?
   APT_UPDATED=$TRUE
+  return $EXITCODE
 }
 ##################################################################
 # Purpose: apt-get upgrade
 ##################################################################
-function apt_upgrade()
+function apt-upgrade()
 {
-  is_apt_updated || apt_update
-  is_debug \
-  && (set -x; apt-get upgrade -yqq) \
-  || (set -x; apt-get upgrade -yqq >/dev/null)
+  is-apt-updated || apt-update
+  cmd apt-get upgrade -yqq
+  return $?
 }
 ##################################################################
 # Purpose: apt-get install
 # Arguments:
 #   $@ -> packages to be installed
 ##################################################################
-function apt_install()
+function apt-install()
 {
-  is_apt_updated || apt_update
-  is_debug \
-  && (set -x; apt-get install -yq --no-install-recommends $@) \
-  || (set -x; apt-get install -yq --no-install-recommends $@ >/dev/null)
+  is-apt-updated || apt-update
+  cmd apt-get install -yq --no-install-recommends $@
+  return $?
 }
 ##################################################################
 # Purpose: apt-get install
 # Arguments:
 #   $@ -> packages to be installed
 ##################################################################
-function apt_build()
+function apt-build()
 {
   BUILD_DEPENDENCIES=($@ "${BUILD_DEPENDENCIES[@]}")
-  apt_install $@
+  apt-install $@
+  return $?
 }
 ##################################################################
 # Purpose: add-apt-repository
 # Arguments:
 #   $@ -> repository to be added
 ##################################################################
-function apt_add_repository(){
-  is_installed add-apt-repository || apt_install software-properties-common
-  is_debug \
-  && (set -x; add-apt-repository -y $@) \
-  || (set -x; add-apt-repository -y $@ >/dev/null)
-  apt_update
-}
-##################################################################
-# Purpose: python3
-# Arguments:
-#   $@ -> arguments for python
-##################################################################
-function python_bin()
-{
-  local bin=$(is_installed python3 && echo 'python3' || echo 'python')
-  is_debug \
-  && (set -x; $bin $@) \
-  || (set -x; $bin $@ >/dev/null)
+function apt-add-repository(){
+  is-installed add-apt-repository || apt-install software-properties-common
+  cmd add-apt-repository -y $@ && apt-update
+  return $?
 }
 ##################################################################
 # Purpose: pip
 # Arguments:
 #   $@ -> commands for pip
 ##################################################################
-function python_pip()
+function python-pip()
 {
-  python_bin -m pip $@
+  cmd python3 -m pip $@
+  return $?
 }
 ##################################################################
 # Purpose: pip install
 # Arguments:
 #   $@ -> packages to install
 ##################################################################
-function pip_install()
+function pip-install()
 {
-  python_pip install --no-cache-dir $@
+  python-pip install --no-cache-dir $@
+  return $?
 }
 ##################################################################
-# Purpose: conda
+# Purpose: python3 -m $1 --sys-prefix
 # Arguments:
-#   $@ -> arguments for conda
+#   $1 -> module to isntall
 ##################################################################
-function conda_bin()
+function python-install()
 {
-  is_debug \
-  && (set -x; conda $@) \
-  || (set -x; conda $@ >/dev/null)
+  cmd python3 -m $1 --sys-prefix
+  return $?
 }
 ##################################################################
 # Purpose: conda install
 # Arguments:
 #   $@ -> packages to install
 ##################################################################
-function conda_install()
+function conda-install()
 {
-  conda_bin install --quiet --yes $@
+  cmd conda install --quiet --yes $@
+  return $?
 }
 ##################################################################
 # Purpose: conda update
 ##################################################################
-function conda_update()
+function conda-update()
 {
-  conda_bin  update -y --all
-  conda_bin  update -y -n base conda
+  cmd conda update -y --all && \
+  cmd conda update -y -n base conda
+  return $?
 }
 ##################################################################
 # Purpose: jupyter labextension install
 # Arguments:
 #   $@ -> extensions to install
 ##################################################################
-function jupyter_install()
+function jupyter-lab-install()
 {
   export NODE_OPTIONS=--max-old-space-size=4096
-  is_debug \
-  && (set -x; jupyter labextension install $@ || (cat /tmp/jupyterlab-debug-*.log && exit 1)) \
-  || (set -x; jupyter labextension install $@ --no-build >/dev/null || (cat /tmp/jupyterlab-debug-*.log && exit 1))
+  cmd jupyter labextension install $@ --no-build || (cat /tmp/jupyterlab-debug-*.log && exit 1)
+  local EXITCODE=$?
+  is-debug && jupyter-lab-build
   unset NODE_OPTIONS
+  return $EXITCODE
+}
+##################################################################
+# Purpose: jupyter lab build
+##################################################################
+function jupyter-lab-build()
+{
+  export NODE_OPTIONS=--max-old-space-size=4096
+  cmd jupyter lab build || (cat /tmp/jupyterlab-debug-*.log && exit 1)
+  local EXITCODE=$?
+  unset NODE_OPTIONS
+  return $EXITCODE
 }
 ##################################################################
 # Purpose: jupyter serverextension enable
 # Arguments:
 #   $@ -> extensions to enable
 ##################################################################
-function jupyter_enable()
+function jupyter-server-enable()
 {
-  if is_debug -eq $TRUE; then
-    (set -x; jupyter serverextension enable $@ --py --sys-prefix || (cat /tmp/jupyterlab-debug-*.log && exit 1)) && jupyter_build
-  else
-    (set -x; jupyter serverextension enable $@ --py --sys-prefix >/dev/null || (cat /tmp/jupyterlab-debug-*.log && exit 1))
-  fi
+  cmd jupyter serverextension enable $@ --py --sys-prefix || return $?
+  is-debug && jupyter-lab-build || return $TRUE
 }
 ##################################################################
-# Purpose: jupyter lab build
+# Purpose: jupyter nbextension enable
+# Arguments:
+#   $@ -> extensions to enable
 ##################################################################
-function jupyter_build()
+function jupyter-notebook-install()
 {
-  export NODE_OPTIONS=--max-old-space-size=4096
-  is_debug \
-  && (set -x; jupyter lab build || (cat /tmp/jupyterlab-debug-*.log && exit 1)) \
-  || (set -x; jupyter lab build >/dev/null || (cat /tmp/jupyterlab-debug-*.log && exit 1))
-  unset NODE_OPTIONS
+  cmd jupyter nbextension install $@ --sys-prefix
+  return $?
+}
+##################################################################
+# Purpose: jupyter nbextension enable
+# Arguments:
+#   $@ -> extensions to enable
+##################################################################
+function jupyter-notebook-enable()
+{
+  cmd jupyter nbextension enable --py $@ --sys-prefix
+  return $?
 }
 ##################################################################
 # Purpose: conda clean
 ##################################################################
-function clean_conda()
+function conda-clean()
 {
-  is_debug \
-  && (set -x; conda clean --all -f -y) \
-  || (set -x; conda clean --all -f -y >/dev/null)
+  cmd conda clean --all -f -y
+  return $?
 }
 ##################################################################
 # Purpose: npm cache clean
 ##################################################################
-function clean_npm_cache()
+function conda-cache-clean()
 {
-  is_debug \
-  && (set -x; npm cache clean --force) \
-  || (set -x; npm cache clean --force >/dev/null)
+  cmd npm cache clean --force
+  return $?
 }
 ##################################################################
 # Purpose: apt-get autoremove
 ##################################################################
-function clean_apt()
+function apt-clean()
 {
-  is_debug \
-  && (set -x; apt-get autoremove -yqq --purge "${BUILD_DEPENDENCIES[@]}" $@) \
-  || (set -x; apt-get autoremove -yqq --purge "${BUILD_DEPENDENCIES[@]}" $@ >/dev/null)
-  is_debug \
-  && (set -x; apt-get clean) \
-  || (set -x; apt-get clean >/dev/null)
+  cmd apt-get autoremove -yqq --purge "${BUILD_DEPENDENCIES[@]}" $@ && \
+  cmd apt-get clean
+  return $?
 }
 ##################################################################
 # Purpose: clean all
+# Arguments:
+#   $@ -> packages to be removed
 ##################################################################
-function clean_all()
+function all-clean()
 {
-  clean_conda \
-  && pyclean / \
-  && clean_npm_cache \
-  && clean_apt $@ \
+  conda-clean \
+  && conda-cache-clean \
+  && python-clean / \
+  && apt-clean $@ \
   && return $TRUE || return $FALSE
 }
