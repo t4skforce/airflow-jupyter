@@ -148,7 +148,7 @@ conda-install jupyter-archive
 
 banner 'JupyterLab latex install'
 # https://github.com/jupyterlab/jupyterlab-latex
-apt-install texlive-xetex # texlive-full texlive-extra-utils
+apt-install texlive-xetex texlive-full texlive-extra-utils
 pip-install jupyterlab_latex
 jupyter-lab-install @jupyterlab/latex
 jupyter-server-enable jupyterlab_latex
@@ -159,9 +159,9 @@ banner 'JupyterLab metadata/dataregistry install'
 jupyter-lab-install @jupyterlab/metadata-extension @jupyterlab/dataregistry-extension
 
 
-banner 'JupyterLab celltags install'
+#banner 'JupyterLab celltags install'
 # https://github.com/jupyterlab/jupyterlab-celltags
-jupyter-lab-install @jupyterlab/celltags
+#jupyter-lab-install @jupyterlab/celltags
 
 
 banner 'JupyterLab geojson install'
