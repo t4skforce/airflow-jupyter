@@ -41,11 +41,17 @@ banner 'Setup User'
 cmd sed -i 's/^#force_color_prompt=yes/force_color_prompt=yes/' /etc/skel/.bashrc \
   && cmd echo "auth requisite pam_deny.so" >> /etc/pam.d/su \
   && cmd sed -i.bak -e 's/^%admin/#%admin/' /etc/sudoers \
+  && cmd echo "export CONDA_DIR=$CONDA_DIR" >> /etc/skel/.bashrc \
+  && cmd echo "export PATH=$CONDA_DIR:\$PATH" >> /etc/skel/.bashrc \
   && chmod g+w /etc/passwd
 
 # https://github.com/jupyter/docker-stacks/blob/master/base-notebook/Dockerfile
 banner 'JupyterLab install'
 conda-install notebook nb_conda jupyterhub jupyterlab
+jupyter-notebook-install nb_conda --symlink
+jupyter-notebook-enable nb_conda
+jupyter-server-enable nb_conda
+
 
 banner 'JupyterHub Cluster install'
 conda-install ipyparallel
@@ -191,13 +197,14 @@ jupyter-lab-install k3d
 
 banner 'JupyterLab plotly install'
 # https://github.com/plotly/plotly.py
-apt-install libgtk2.0-0 libgconf-2-4 xvfb fuse desktop-file-utils chromium
+apt-install libgtk2.0-0 libgconf-2-4 xvfb xauth fuse desktop-file-utils chromium
 conda-install -c plotly plotly
 conda-install -c plotly plotly-orca
 conda-install -c plotly plotly-geo
 conda-install openssl psutil requests ipywidgets
 jupyter-lab-install jupyterlab-plotly
 jupyter-lab-install plotlywidget
+cmd python3 -c 'import plotly.io as pio;pio.orca.config.use_xvfb = True;pio.orca.config.save();'
 #jupyter-lab-install jupyterlab-chart-editor
 
 
@@ -205,12 +212,6 @@ banner 'JupyterLab Celltests install'
 # https://github.com/timkpaine/jupyterlab_celltests
 # https://github.com/computationalmodelling/nbval
 jupyter-lab-install jupyterlab_celltests
-
-
-banner 'JupyterLab Top Bar install'
-# https://github.com/jtpio/jupyterlab-topbar
-pip-install nbresuse
-jupyter-lab-install jupyterlab-topbar-extension jupyterlab-system-monitor
 
 
 banner 'JupyterLab variableinspector install'

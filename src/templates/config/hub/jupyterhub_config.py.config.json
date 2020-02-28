@@ -11,6 +11,9 @@
   "Authenticator":{
     "admin_users:set":["{{env.USER_NAME}}"]
   },
+  "LocalAuthenticator":{
+    "create_system_users":true
+  },
   "Spawner":{
     "default_url":"/lab"
   }
