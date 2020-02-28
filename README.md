@@ -9,3 +9,18 @@ Docker build for easy integration of Apache Airflow and JupyterLab
 ```
 make DEBUG=true
 ```
+## change user stuff
+```
+# change password
+echo "username:newpass"|chpasswd
+
+# change uid and gid
+# Please note that all files which are located in the user’s home directory will have the file UID changed automatically
+usermod -u 2005 foo
+groupmod -g 3000 foo
+
+# However, files outside user’s home directory need to be changed manually.
+# To manually change files with old GID and UID respectively
+find / -group 2000 -exec chgrp -h foo {} \;
+find / -user 1005 -exec chown -h foo {} \;
+```

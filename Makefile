@@ -21,4 +21,4 @@ dive:
 
 run:
 	@echo "runing things"
-	docker run --name airlowlab -p 127.0.0.1:8888:8888 -it --rm jupyterlab-airflow
+	docker run --name airlowlab -p 127.0.0.1:8000:8000 -it --rm jupyterlab-airflow

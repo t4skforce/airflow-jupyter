@@ -1,9 +1,10 @@
 #!/bin/bash
 set -e
 # set variables
-declare -r TRUE=0
-declare -r FALSE=1
-declare -r PASSWD_FILE=/etc/passwd
+declare SELF_DIRECTORY=$(cd `dirname $0` && pwd)
+declare TRUE=0
+declare FALSE=1
+declare PASSWD_FILE=/etc/passwd
 declare APT_UPDATED=$FALSE
 DEBUG=${DEBUG-'false'}
 declare -a BUILD_DEPENDENCIES=${BUILD_DEPENDENCIES-()}
@@ -60,7 +61,6 @@ function is-root()
 {
    [ $(id -u) -eq 0 ] && return $TRUE || return $FALSE
 }
-
 ##################################################################
 # Purpose: Return true $user exits in /etc/passwd
 # Arguments: $1 (username) -> Username to check in /etc/passwd
@@ -68,8 +68,38 @@ function is-root()
 ##################################################################
 function user-exits()
 {
+    is-root || die 'can only be executed as root'
     local u="$1"
     grep -q "^${u}" $PASSWD_FILE && return $TRUE || return $FALSE
+}
+##################################################################
+# Purpose: add user to system
+# Environment:
+#   $SHELL -> logon shell
+#   $USER_UID -> user id
+#   $USER_GID -> group id
+#   $USER_NAME -> username
+# Return: True or False
+##################################################################
+function add-user()
+{
+  is-root || die 'can only be executed as root'
+  add-user --create-home --shell ${SHELL} --uid ${USER_UID} --gid ${USER_GID} --groups sudo --home "/home/${USER_NAME}" ${USER_NAME} \
+  && echo "${USER_NAME}:${USER_NAME}" | chpasswd \
+  && cmd chown -R ${USER_NAME} "/home/${USER_NAME}" \
+  && cmd cp -r /etc/skel/. "/home/${USER_NAME}"
+  return $?
+}
+##################################################################
+# Purpose: update exsisint user uid and gid
+##################################################################
+function update-user()
+{
+  is-root || die 'can only be executed as root'
+  local OUID=$(id -u ${USER_NAME})
+  local OGID=$(id -g ${USER_NAME})
+  [ "$OUID" != "$USER_UID" ] && cmd usermod -u $USER_UID $USER_NAME && find / -user $OUID -exec chown -h $USER_NAME {} \;
+  [ "$OGID" != "$USER_GID" ] && cmd groupmod -g $USER_GID $USER_NAME && find / -group $OGID -exec chgrp -h $USER_GID {} \;
 }
 ##################################################################
 # Purpose: check if apt-get update was wriggered
@@ -85,7 +115,7 @@ function is-apt-updated()
 ##################################################################
 function is-installed()
 {
-  hash add-apt-repository 2>/dev/null && return $TRUE || return $FALSE
+  hash $1 2>/dev/null && return $TRUE || return $FALSE
 }
 ##################################################################
 # Purpose: check if debug is enabled
@@ -102,7 +132,7 @@ function is-debug()
 ##################################################################
 function cmd()
 {
-  is-debug && (set -xe; "$@") || (set -xe; "$@" >/dev/null)
+  is-debug && (set -xe; $@) || (set -xe; $@ >/dev/null)
   return $?
 }
 ##################################################################
@@ -125,6 +155,7 @@ function cmd()
 ##################################################################
 function fix-permissions()
 {
+  is-root || die 'can only be executed as root'
   local GID="$1"
   shift # skip first
   for d in "$@"; do
@@ -149,6 +180,7 @@ function fix-permissions()
 ##################################################################
 function gen-locales()
 {
+  is-root || die 'can only be executed as root'
   cmd echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
   && cmd locale-gen
   return $?
@@ -168,6 +200,7 @@ function nb-test()
 ##################################################################
 function add-user()
 {
+  is-root || die 'can only be executed as root'
   cmd useradd $@
   return $?
 }
@@ -178,9 +211,15 @@ function install-conda()
 {
   cmd curl $CONDA_URL --output conda.sh --silent \
   && cmd /bin/bash ./conda.sh -f -b -p "$CONDA_DIR" \
+  && cmd ln -s "$CONDA_DIR/etc/profile.d/conda.sh" /etc/profile.d/conda.sh \
+  && cmd echo ". /opt/conda/etc/profile.d/conda.sh" >> /etc/skel/.bashrc \
+  && cmd echo "conda activate base" >> /etc/skel/.bashrc \
+  && cmd echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc \
+  && cmd echo "conda activate base" >> ~/.bashrc \
   && cmd conda config --system --prepend channels conda-forge \
   && cmd conda config --system --set auto_update_conda false \
   && cmd conda config --system --set show_channel_urls true \
+  && cmd conda config --system --set always_yes true \
   && (set -xe; conda list python | grep '^python ' | tr -s ' ' | cut -d '.' -f 1,2 | sed 's/$/.*/' >> $CONDA_DIR/conda-meta/pinned) \
   && conda-install conda \
   && conda-install pip \
@@ -203,6 +242,7 @@ function python-clean()
 ##################################################################
 function apt-update()
 {
+  is-root || die 'can only be executed as root'
   cmd apt-get update -yqq
   local EXITCODE=$?
   APT_UPDATED=$TRUE
@@ -213,6 +253,7 @@ function apt-update()
 ##################################################################
 function apt-upgrade()
 {
+  is-root || die 'can only be executed as root'
   is-apt-updated || apt-update
   cmd apt-get upgrade -yqq
   return $?
@@ -224,6 +265,7 @@ function apt-upgrade()
 ##################################################################
 function apt-install()
 {
+  is-root || die 'can only be executed as root'
   is-apt-updated || apt-update
   cmd apt-get install -yq --no-install-recommends $@
   return $?
@@ -235,6 +277,7 @@ function apt-install()
 ##################################################################
 function apt-build()
 {
+  is-root || die 'can only be executed as root'
   BUILD_DEPENDENCIES=($@ "${BUILD_DEPENDENCIES[@]}")
   apt-install $@
   return $?
@@ -245,6 +288,7 @@ function apt-build()
 #   $@ -> repository to be added
 ##################################################################
 function apt-add-repository(){
+  is-root || die 'can only be executed as root'
   is-installed add-apt-repository || apt-install software-properties-common
   cmd add-apt-repository -y $@ && apt-update
   return $?
@@ -305,7 +349,7 @@ function conda-update()
 ##################################################################
 function jupyter-lab-install()
 {
-  export NODE_OPTIONS=--max-old-space-size=4096
+  export NODE_OPTIONS=--max-old-space-size=16000
   cmd jupyter labextension install $@ --no-build || (cat /tmp/jupyterlab-debug-*.log && exit 1)
   local EXITCODE=$?
   is-debug && jupyter-lab-build
@@ -317,7 +361,7 @@ function jupyter-lab-install()
 ##################################################################
 function jupyter-lab-build()
 {
-  export NODE_OPTIONS=--max-old-space-size=4096
+  export NODE_OPTIONS=--max-old-space-size=16000
   cmd jupyter lab build || (cat /tmp/jupyterlab-debug-*.log && exit 1)
   local EXITCODE=$?
   unset NODE_OPTIONS
@@ -330,8 +374,8 @@ function jupyter-lab-build()
 ##################################################################
 function jupyter-server-enable()
 {
-  cmd jupyter serverextension enable $@ --py --sys-prefix || return $?
-  is-debug && jupyter-lab-build || return $TRUE
+  cmd jupyter serverextension enable $@ --py --sys-prefix
+  return $?
 }
 ##################################################################
 # Purpose: jupyter nbextension enable
@@ -358,7 +402,7 @@ function jupyter-notebook-enable()
 ##################################################################
 function conda-clean()
 {
-  cmd conda clean --all -f -y
+  cmd conda clean -tipsy
   return $?
 }
 ##################################################################

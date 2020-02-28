@@ -1,26 +1,30 @@
 FROM debian:buster-slim
 
-ARG USER_NAME="jovyan"
-ARG USER_UID="1000"
-ARG USER_GID="100"
 ARG CONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh"
+
+ENV USER_NAME="admin" \
+  USER_UID="1000" \
+  USER_GID="100"
 
 ENV DEBIAN_FRONTEND=noninteractive \
   TERM=linux \
   SHELL=/bin/bash \
-  USER_HOME=/home/$USER_NAME \
-  XDG_CACHE_HOME=$USER_HOME/.cache/ \
-  CONDA_DIR=/opt/conda
+  CONDA_DIR=/opt/conda \
+  CONFIG_PATH=/config \
+  PATH=/opt/conda/bin:$PATH \
+  HUB_IP='0.0.0.0' \
+  HUB_PORT=8000
 
 # Debugging the build
 ARG DEBUG=false
 
 USER root
-ADD src/* /tmp/
+ADD src /tmp/
 WORKDIR /tmp/
 RUN ./install.sh
-WORKDIR $USER_HOME
-USER $USER_UID
 
-ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["singleuser"]
+WORKDIR /root
+VOLUME ["/config","/home"]
+EXPOSE 8000
+ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["jupyterhub","--config=/config/hub/jupyterhub_config.py"]

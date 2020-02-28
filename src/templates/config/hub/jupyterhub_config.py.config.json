@@ -1,0 +1,17 @@
+{
+  "JupyterHub":{
+    "ip":"{{env.HUB_IP|default('0.0.0.0',true)}}",
+    "port:int":"{{env.HUB_PORT|default(8000,true)}}",
+    "cookie_secret_file":"{{env.CONFIG_PATH|default('/config',true)}}/hub/cookie_secret",
+    "db_url":"{{env.CONFIG_PATH|default('/config',true)}}/hub/jupyterhub.sqlite",
+    "confirm_no_ssl":true,
+    "cleanup_proxy":true,
+    "cleanup_servers": true
+  },
+  "Authenticator":{
+    "admin_users:set":["{{env.USER_NAME}}"]
+  },
+  "Spawner":{
+    "default_url":"/lab"
+  }
+}
