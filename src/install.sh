@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 # expand PATH
 echo "PATH=$CONDA_DIR/bin:\$PATH" >> /etc/environment
 source /etc/environment && export PATH
@@ -204,7 +205,7 @@ conda-install -c plotly plotly-geo
 conda-install openssl psutil requests ipywidgets
 jupyter-lab-install jupyterlab-plotly
 jupyter-lab-install plotlywidget
-cmd python3 -c 'import plotly.io as pio;pio.orca.config.use_xvfb = True;pio.orca.config.save();'
+(set -xe; python3 -c 'import plotly.io as pio;pio.orca.config.use_xvfb = True;pio.orca.config.save();')
 #jupyter-lab-install jupyterlab-chart-editor
 
 
