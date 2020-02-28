@@ -84,7 +84,7 @@ function user-exits()
 function add-user()
 {
   is-root || die 'can only be executed as root'
-  add-user --create-home --shell ${SHELL} --uid ${USER_UID} --gid ${USER_GID} --groups sudo --home "/home/${USER_NAME}" ${USER_NAME} \
+  cmd useradd --create-home --shell ${SHELL} --uid ${USER_UID} --gid ${USER_GID} --groups sudo --home "/home/${USER_NAME}" ${USER_NAME} \
   && echo "${USER_NAME}:${USER_NAME}" | chpasswd \
   && cmd chown -R ${USER_NAME} "/home/${USER_NAME}" \
   && cmd cp -r /etc/skel/. "/home/${USER_NAME}"
@@ -193,15 +193,6 @@ function gen-locales()
 function nb-test()
 {
   py.test --nbval $@
-  return $?
-}
-##################################################################
-# Purpose: add system user
-##################################################################
-function add-user()
-{
-  is-root || die 'can only be executed as root'
-  cmd useradd $@
   return $?
 }
 ##################################################################
