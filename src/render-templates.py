@@ -33,17 +33,20 @@ class PythonEscapeExtension(Extension):
     This will ensure that all injected values are converted to YAML.
     """
     def filter_stream(self, stream):
-        escape = stream.name.endswith('.py')
-        safe = False
-        for token in stream:
-            if token.type == 'name' and token.value == 'safe':
-                safe = True
-            elif token.type == 'variable_end':
-                if escape and not safe:
-                    yield Token(token.lineno, 'pipe', '|')
-                    yield Token(token.lineno, 'name', 'python')
-                safe = False
-            yield token
+        if not stream.name.endswith('.py'):
+            for token in stream:
+                yield token
+        else:
+            safe = False
+            for token in stream:
+                if token.type == 'name' and token.value == 'safe':
+                    safe = True
+                elif token.type == 'variable_end':
+                    if not safe:
+                        yield Token(token.lineno, 'pipe', '|')
+                        yield Token(token.lineno, 'name', 'python')
+                    safe = False
+                yield token
 
 
 def dict_merge(base_dct, merge_dct):
@@ -66,8 +69,10 @@ def transform_config(config={}):
         for key,value in config.items():
             if isinstance(value,dict):
                 ret_dict[key] = value = transform_config(value)
-            if key.endswith(':set') and isinstance(value,list):
-                value = set([x for x in [render_value(e,env=os.environ) for e in value] if x])
+            if isinstance(value, list):
+                value = [x for x in [render_value(e,env=os.environ) for e in value] if x]
+            if key.endswith(':set') and isinstance(value, list):
+                value = set(value) if value else set()
                 ret_dict[':'.join(key.split(':')[:-1])]=set(value) if value else set()
             elif key.endswith(':str'):
                 value = render_value(value,env=os.environ)
@@ -145,8 +150,10 @@ def load_conf_files(templates,target_file,conf_file):
 
 @click.command()
 @click.argument('templates', default="/root/templates" ,type=click.Path(exists=True))
+@click.option('--stdout/--no-stdout', default=False)
 @click.argument('output', default="/" ,type=click.Path(exists=True))
-def main(templates,output):
+def main(templates,stdout,output):
+    if stdout: log.setLevel(logging.ERROR)
     env = Environment(
         extensions=(PythonEscapeExtension,),
         loader=FileSystemLoader(templates),
@@ -161,11 +168,15 @@ def main(templates,output):
             template = env.get_template(template)
             log.info("rendering {} -> {}".format(template,target_file))
             target_directory = os.path.dirname(target_file)
-            if not os.path.exists(target_directory):
-                os.makedirs(target_directory)
-            with open(target_file,'w') as out_file:
-                out_file.write(template.render(config=transform_config(config)))
-            log.info("rendered {}".format(target_file))
+            if stdout:
+                print(template.render(config=transform_config(config)))
+                continue
+            else:
+                if not os.path.exists(target_directory):
+                    os.makedirs(target_directory)
+                with open(target_file,'w') as out_file:
+                    out_file.write(template.render(config=transform_config(config)))
+                log.info("rendered {}".format(target_file))
 
 if __name__ == '__main__':
     main()

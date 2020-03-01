@@ -43,12 +43,15 @@ cmd sed -i 's/^#force_color_prompt=yes/force_color_prompt=yes/' /etc/skel/.bashr
   && cmd echo "auth requisite pam_deny.so" >> /etc/pam.d/su \
   && cmd sed -i.bak -e 's/^%admin/#%admin/' /etc/sudoers \
   && cmd echo "export CONDA_DIR=$CONDA_DIR" >> /etc/skel/.bashrc \
-  && cmd echo "export PATH=$CONDA_DIR:\$PATH" >> /etc/skel/.bashrc \
+  && cmd echo "export PATH=$CONDA_DIR/bin:\$PATH" >> /etc/skel/.bashrc \
   && chmod g+w /etc/passwd
 
 # https://github.com/jupyter/docker-stacks/blob/master/base-notebook/Dockerfile
 banner 'JupyterLab install'
-conda-install notebook nb_conda jupyterhub jupyterlab
+conda-install notebook jupyterhub 'jupyterlab<2.0.0'
+
+banner 'Install nb_conda'
+conda-install  nb_conda
 jupyter-notebook-install nb_conda --symlink
 jupyter-notebook-enable nb_conda
 jupyter-server-enable nb_conda
@@ -95,8 +98,9 @@ banner 'JupyterLab Jupyter Widgets install'
 jupyter-lab-install @jupyter-widgets/jupyterlab-manager
 
 
-banner 'JupyterLab jupyterlab_bokeh install'
-jupyter-lab-install jupyterlab_bokeh
+#banner 'JupyterLab jupyterlab_bokeh install'
+# https://github.com/bokeh/jupyter_bokeh
+#jupyter-lab-install jupyterlab_bokeh
 
 
 banner 'JupyterLab facets install'
@@ -160,9 +164,9 @@ banner 'JupyterLab metadata/dataregistry install'
 jupyter-lab-install @jupyterlab/metadata-extension @jupyterlab/dataregistry-extension
 
 
-#banner 'JupyterLab celltags install'
+banner 'JupyterLab celltags install'
 # https://github.com/jupyterlab/jupyterlab-celltags
-#jupyter-lab-install @jupyterlab/celltags
+jupyter-lab-install @jupyterlab/celltags
 
 
 banner 'JupyterLab geojson install'
@@ -206,7 +210,7 @@ conda-install openssl psutil requests ipywidgets
 jupyter-lab-install jupyterlab-plotly
 jupyter-lab-install plotlywidget
 (set -xe; python3 -c 'import plotly.io as pio;pio.orca.config.use_xvfb = True;pio.orca.config.save();')
-#jupyter-lab-install jupyterlab-chart-editor
+jupyter-lab-install jupyterlab-chart-editor
 
 
 banner 'JupyterLab Celltests install'
@@ -296,27 +300,33 @@ jupyter-server-enable jupyterlab_s3_browser
 #conda-install jupyter_conda
 
 
-banner 'JupyterLab Kernel (beakerx) install'
+banner 'jupyter Kernel (beakerx) install'
 # http://beakerx.com/
 conda-install ipywidgets beakerx
 
 
-banner 'JupyterLab Kernel (xeus-cling C++) install'
+banner 'jupyter Kernel (xeus-cling C++) install'
 # https://github.com/jupyter-xeus/xeus-cling
 conda-install xeus-cling xtensor xtensor-blas
 
 
-banner 'JupyterLab Kernel (R) install'
+banner 'jupyter Kernel (R) install'
 conda-install -c r r-irkernel r-essentials
 
 
-banner 'JupyterLab Kernel (Ruby) install'
+banner 'jupyter Kernel (Ruby) install'
 # https://github.com/SciRuby/iruby
 apt-install libtool libffi-dev ruby ruby-dev make
 apt-install libzmq3-dev libczmq-dev
 cmd gem install ffi-rzmq
 cmd gem install iruby --pre
 cmd iruby register --force
+
+banner 'jupyter Kernel (.Net) install'
+cmd wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.asc.gpg
+cmd wget https://packages.microsoft.com/config/debian/9/prod.list -O /etc/apt/sources.list.d/microsoft-prod.list
+apt-update && apt-install dotnet-sdk-3.1
+cmd dotnet tool install -g dotnet-try && cmd dotnet try jupyter install
 
 
 # PHP
@@ -336,6 +346,7 @@ cmd iruby register --force
 
 is-debug || (banner 'JupyterLab Building' && jupyter-lab-build)
 
+banner 'Conda fix permissions' && fix-conda-permissions
 
 banner 'Setup JupyterHub'
 pip-install jinja2 click && \

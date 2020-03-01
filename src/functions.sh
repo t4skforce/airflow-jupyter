@@ -84,7 +84,7 @@ function user-exits()
 function add-user()
 {
   is-root || die 'can only be executed as root'
-  cmd useradd --create-home --shell ${SHELL} --uid ${USER_UID} --gid ${USER_GID} --groups sudo --home "/home/${USER_NAME}" ${USER_NAME} \
+  cmd useradd --create-home --shell ${SHELL} --uid ${USER_UID} --gid ${USER_GID} --groups sudo,conda --home "/home/${USER_NAME}" ${USER_NAME} \
   && echo "${USER_NAME}:${USER_NAME}" | chpasswd \
   && cmd chown -R ${USER_NAME} "/home/${USER_NAME}" \
   && cmd cp -r /etc/skel/. "/home/${USER_NAME}"
@@ -208,13 +208,27 @@ function install-conda()
   && cmd echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc \
   && cmd echo "conda activate base" >> ~/.bashrc \
   && cmd conda config --system --prepend channels conda-forge \
+  && cmd conda config --system --set channel_priority strict \
   && cmd conda config --system --set auto_update_conda false \
   && cmd conda config --system --set show_channel_urls true \
   && cmd conda config --system --set always_yes true \
   && (set -xe; conda list python | grep '^python ' | tr -s ' ' | cut -d '.' -f 1,2 | sed 's/$/.*/' >> $CONDA_DIR/conda-meta/pinned) \
   && conda-install conda \
   && conda-install pip \
-  && cmd conda update --all --quiet --yes || exit 1
+  && cmd conda update --all --quiet --yes \
+  && cmd addgroup conda \
+  && cmd chgrp -R conda $CONDA_DIR \
+  && cmd chmod 770 -R $CONDA_DIR || exit 1
+  return $?
+}
+##################################################################
+# Fixup permissions for conda isntall
+##################################################################
+function fix-conda-permissions()
+{
+  is-root || die 'can only be executed as root'
+  cmd chgrp -R conda $CONDA_DIR \
+  && cmd chmod 770 -R $CONDA_DIR || exit 1
   return $?
 }
 ##################################################################
