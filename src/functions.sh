@@ -86,8 +86,7 @@ function add-user()
   is-root || die 'can only be executed as root'
   cmd useradd --create-home --shell ${SHELL} --uid ${USER_UID} --gid ${USER_GID} --groups sudo,conda --home "/home/${USER_NAME}" ${USER_NAME} \
   && echo "${USER_NAME}:${USER_NAME}" | chpasswd \
-  && cmd chown -R ${USER_NAME} "/home/${USER_NAME}" \
-  && cmd cp -r /etc/skel/. "/home/${USER_NAME}"
+  && cmd chown -R ${USER_NAME} "/home/${USER_NAME}"
   return $?
 }
 ##################################################################
@@ -202,11 +201,6 @@ function install-conda()
 {
   cmd curl $CONDA_URL --output conda.sh --silent \
   && cmd /bin/bash ./conda.sh -f -b -p "$CONDA_DIR" \
-  && cmd ln -s "$CONDA_DIR/etc/profile.d/conda.sh" /etc/profile.d/conda.sh \
-  && cmd echo ". /opt/conda/etc/profile.d/conda.sh" >> /etc/skel/.bashrc \
-  && cmd echo "conda activate base" >> /etc/skel/.bashrc \
-  && cmd echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc \
-  && cmd echo "conda activate base" >> ~/.bashrc \
   && cmd conda config --system --prepend channels conda-forge \
   && cmd conda config --system --set channel_priority strict \
   && cmd conda config --system --set auto_update_conda false \
@@ -407,8 +401,8 @@ function jupyter-notebook-enable()
 ##################################################################
 function conda-clean()
 {
-  cmd conda clean -tipsy
-  return $?
+  cmd conda build purge-all && \
+  return $TRUE || return $FALSE
 }
 ##################################################################
 # Purpose: npm cache clean

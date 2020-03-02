@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 set -e
-# expand PATH
-echo "PATH=$CONDA_DIR/bin:\$PATH" >> /etc/environment
-source /etc/environment && export PATH
-
+export PATH=$CONDA_DIR/bin:$PATH
 # Load the functions.sh
 source functions.sh
 
@@ -39,16 +36,22 @@ pip-install -U pip \
 
 banner 'Setup User'
 # general env settings
-cmd sed -i 's/^#force_color_prompt=yes/force_color_prompt=yes/' /etc/skel/.bashrc \
-  && cmd echo "auth requisite pam_deny.so" >> /etc/pam.d/su \
-  && cmd sed -i.bak -e 's/^%admin/#%admin/' /etc/sudoers \
-  && cmd echo "export CONDA_DIR=$CONDA_DIR" >> /etc/skel/.bashrc \
-  && cmd echo "export PATH=$CONDA_DIR/bin:\$PATH" >> /etc/skel/.bashrc \
-  && chmod g+w /etc/passwd
+cmd sed -i 's/^#force_color_prompt=yes/force_color_prompt=yes/' /etc/skel/.bashrc && \
+  cmd echo "auth requisite pam_deny.so" >> /etc/pam.d/su && \
+  cmd sed -i.bak -e 's/^%admin/#%admin/' /etc/sudoers && \
+  cmd echo "$USER_NAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/notebook && \
+  chmod g+w /etc/passwd
 
 # https://github.com/jupyter/docker-stacks/blob/master/base-notebook/Dockerfile
 banner 'JupyterLab install'
-conda-install notebook jupyterhub 'jupyterlab<2.0.0'
+conda-install notebook jupyterhub 'jupyterlab<2.0.0' && \
+  cmd rm -rf /root/.jupyter && \
+  cmd mkdir -p /root/.jupyter && \
+  cmd ln -s /opt/conda/etc/jupyter /root/.jupyter && \
+  cmd rm -rf /root/.local/share/jupyter && \
+  cmd mkdir -p /root/.local/share/jupyter && \
+  cmd ln -s /opt/conda/share/jupyter /root/.local/share/jupyter
+
 
 banner 'Install nb_conda'
 conda-install  nb_conda
@@ -104,10 +107,10 @@ jupyter-lab-install @jupyter-widgets/jupyterlab-manager
 
 
 banner 'JupyterLab facets install'
-cmd git clone https://github.com/PAIR-code/facets.git \
-  && cd facets \
-  && jupyter-notebook-install facets-dist/ \
-  && cd .. || exit 1
+cmd git clone https://github.com/PAIR-code/facets.git  && \
+  cd facets && \
+  jupyter-notebook-install facets-dist/ && \
+  cd .. || exit 1
 
 
 banner 'JupyterLab IPython SQL Magic install'
@@ -119,11 +122,6 @@ banner 'JupyterLab Browser Notifications Magic install'
 pip-install jupyternotify
 
 
-banner 'JupyterLab Nbtutor install'
-# https://github.com/lgpage/nbtutor
-conda-install nbtutor
-
-
 banner 'JupyterLab Callgraph Magic install'
 # https://github.com/ShopRunner/jupyter-notify
 pip-install callgraph
@@ -131,19 +129,14 @@ pip-install callgraph
 
 banner 'JupyterLab jupyterlab-sql install'
 # https://github.com/pbugnion/jupyterlab-sql
-pip-install jupyterlab_sql
-jupyter-server-enable jupyterlab_sql
-
-
-banner 'JupyterLab git install'
-# https://github.com/jupyterlab/jupyterlab-git
-jupyter-lab-install @jupyterlab/git
+pip-install jupyterlab_sql && \
+  jupyter-server-enable jupyterlab_sql
 
 
 banner 'JupyterLab debug install'
 # https://github.com/jupyterlab/debugger
-conda-install xeus-python notebook ptvsd
-jupyter-lab-install @jupyterlab/debugger
+conda-install xeus-python notebook ptvsd && \
+  jupyter-lab-install @jupyterlab/debugger
 
 
 banner 'JupyterLab jupyter-archive install'
@@ -151,22 +144,14 @@ banner 'JupyterLab jupyter-archive install'
 conda-install jupyter-archive
 
 
-banner 'JupyterLab latex install'
-# https://github.com/jupyterlab/jupyterlab-latex
-apt-install texlive-xetex texlive-full texlive-extra-utils
-pip-install jupyterlab_latex
-jupyter-lab-install @jupyterlab/latex
-jupyter-server-enable jupyterlab_latex
-
-
 banner 'JupyterLab metadata/dataregistry install'
 # https://github.com/jupyterlab/jupyterlab-metadata-service
 jupyter-lab-install @jupyterlab/metadata-extension @jupyterlab/dataregistry-extension
 
 
-banner 'JupyterLab celltags install'
+#banner 'JupyterLab celltags install'
 # https://github.com/jupyterlab/jupyterlab-celltags
-jupyter-lab-install @jupyterlab/celltags
+#jupyter-lab-install @jupyterlab/celltags
 
 
 banner 'JupyterLab geojson install'
@@ -174,43 +159,33 @@ banner 'JupyterLab geojson install'
 jupyter-lab-install @jupyterlab/geojson-extension
 
 
-banner 'JupyterLab fasta install'
-# https://github.com/jupyterlab/jupyter-renderers/tree/master/packages/fasta-extension
-jupyter-lab-install @jupyterlab/fasta-extension
-
-
 banner 'JupyterLab commenting install'
 # https://github.com/jupyterlab/jupyterlab-commenting
 jupyter-lab-install @jupyterlab/commenting-extension
 
 
-banner 'JupyterLab drawio install'
-# https://github.com/QuantStack/jupyterlab-drawio
-jupyter-lab-install jupyterlab-drawio
-
-
 banner 'JupyterLab ViewSCAD install'
 # https://github.com/nickc92/ViewSCAD
-apt-install openscad
-pip-install viewscad
+apt-install openscad && \
+  pip-install viewscad
 
 
 banner 'JupyterLab K3D install'
-conda-install k3d
-jupyter-lab-install k3d
+conda-install k3d && \
+  jupyter-lab-install k3d
 
 
 banner 'JupyterLab plotly install'
 # https://github.com/plotly/plotly.py
-apt-install libgtk2.0-0 libgconf-2-4 xvfb xauth fuse desktop-file-utils chromium
-conda-install -c plotly plotly
-conda-install -c plotly plotly-orca
-conda-install -c plotly plotly-geo
-conda-install openssl psutil requests ipywidgets
-jupyter-lab-install jupyterlab-plotly
-jupyter-lab-install plotlywidget
-(set -xe; python3 -c 'import plotly.io as pio;pio.orca.config.use_xvfb = True;pio.orca.config.save();')
-jupyter-lab-install jupyterlab-chart-editor
+apt-install libgtk2.0-0 libgconf-2-4 xvfb xauth fuse desktop-file-utils chromium && \
+  conda-install -c plotly plotly && \
+  conda-install -c plotly plotly-orca && \
+  conda-install -c plotly plotly-geo && \
+  conda-install openssl psutil requests ipywidgets && \
+  jupyter-lab-install jupyterlab-plotly && \
+  jupyter-lab-install plotlywidget && \
+  (set -xe; python3 -c 'import plotly.io as pio;pio.orca.config.use_xvfb = True;pio.orca.config.save();') && \
+  jupyter-lab-install jupyterlab-chart-editor
 
 
 banner 'JupyterLab Celltests install'
@@ -231,17 +206,17 @@ jupyter-lab-install @ijmbarr/jupyterlab_spellchecker
 
 banner 'JupyterLab Language Server Protocol install'
 # https://github.com/krassowski/jupyterlab-lsp
-pip-install jupyter-lsp
-conda-install python-language-server r-languageserver
-jupyter-lab-install @krassowski/jupyterlab-lsp
+pip-install jupyter-lsp && \
+  conda-install python-language-server && \
+  jupyter-lab-install @krassowski/jupyterlab-lsp
 
 
 banner 'JupyterLab Code Formatter install'
 # https://github.com/ryantam626/jupyterlab_code_formatter
-conda-install black
-jupyter-lab-install @ryantam626/jupyterlab_code_formatter
-conda-install jupyterlab_code_formatter
-jupyter-server-enable jupyterlab_code_formatter
+conda-install black && \
+  jupyter-lab-install @ryantam626/jupyterlab_code_formatter && \
+  conda-install jupyterlab_code_formatter && \
+  jupyter-server-enable jupyterlab_code_formatter
 
 
 banner 'JupyterLab Go to definition install'
@@ -260,11 +235,6 @@ conda-install flake8
 jupyter-lab-install jupyterlab-flake8
 
 
-banner 'JupyterLab html install'
-# https://github.com/mflevine/jupyterlab_html
-jupyter-lab-install @mflevine/jupyterlab_html
-
-
 banner 'JupyterLab filetree install'
 # https://github.com/youngthejames/jupyterlab_filetree
 jupyter-lab-install jupyterlab_filetree
@@ -280,24 +250,11 @@ banner 'JupyterLab Spreadsheet install'
 jupyter-lab-install jupyterlab-spreadsheet
 
 
-banner 'JupyterLab autoversion install'
-# https://github.com/timkpaine/jupyterlab_autoversion
-pip-install jupyterlab_autoversion
-jupyter-lab-install jupyterlab_autoversion
-jupyter-server-enable jupyterlab_autoversion
-
-
 banner 'JupyterLab s3-browser install'
 # https://github.com/IBM/jupyterlab-s3-browser
-pip-install jupyterlab-s3-browser
-jupyter-lab-install jupyterlab-s3-browser
-jupyter-server-enable jupyterlab_s3_browser
-
-
-#banner 'JupyterLab conda install'
-# https://github.com/fcollonval/jupyter_conda
-# https://github.com/fcollonval/jupyter_conda/issues/23
-#conda-install jupyter_conda
+pip-install jupyterlab-s3-browser && \
+  jupyter-lab-install jupyterlab-s3-browser && \
+  jupyter-server-enable jupyterlab_s3_browser
 
 
 banner 'jupyter Kernel (beakerx) install'
@@ -310,23 +267,36 @@ banner 'jupyter Kernel (xeus-cling C++) install'
 conda-install xeus-cling xtensor xtensor-blas
 
 
-banner 'jupyter Kernel (R) install'
-conda-install -c r r-irkernel r-essentials
+banner 'jupyter Kernel (JS/TS) install'
+# https://github.com/yunabe/tslab
+  cmd npm install tslab && \
+  cmd tslab install --python=python3
+
+
+#banner 'jupyter Kernel (R) install'
+# apt-install fonts-dejavu unixodbc unixodbc-dev r-cran-rodbc gfortran gcc \
+# && cmd ln -s /bin/tar /bin/gtar \
+# && conda-install r-base r-caret r-crayon r-devtools r-forecast r-hexbin r-htmltools r-htmlwidgets r-irkernel r-nycflights13 r-plyr r-randomforest r-rcurl r-reshape2 r-rmarkdown r-rodbc r-rsqlite r-shiny r-tidyverse unixodbc r-e1071
 
 
 banner 'jupyter Kernel (Ruby) install'
 # https://github.com/SciRuby/iruby
-apt-install libtool libffi-dev ruby ruby-dev make
-apt-install libzmq3-dev libczmq-dev
-cmd gem install ffi-rzmq
-cmd gem install iruby --pre
-cmd iruby register --force
+apt-install libtool libffi-dev ruby ruby-dev make && \
+  apt-install libzmq3-dev libczmq-dev && \
+  cmd gem install ffi-rzmq && \
+  cmd gem install iruby --pre && \
+  cmd iruby register --force
+
 
 banner 'jupyter Kernel (.Net) install'
-cmd wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.asc.gpg
-cmd wget https://packages.microsoft.com/config/debian/9/prod.list -O /etc/apt/sources.list.d/microsoft-prod.list
-apt-update && apt-install dotnet-sdk-3.1
-cmd dotnet tool install -g dotnet-try && cmd dotnet try jupyter install
+# https://devblogs.microsoft.com/dotnet/net-core-with-juypter-notebooks-is-here-preview-1/
+apt-install gnupg curl && \
+  curl -s https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
+  cmd curl -s https://packages.microsoft.com/config/debian/9/prod.list -o /etc/apt/sources.list.d/microsoft-prod.list && \
+  apt-update && \
+  apt-install dotnet-sdk-3.1 && \
+  cmd dotnet tool install -g dotnet-try && \
+  cmd /root/.dotnet/tools/dotnet-try jupyter install
 
 
 # PHP
@@ -338,22 +308,19 @@ cmd dotnet tool install -g dotnet-try && cmd dotnet try jupyter install
 # Jupyter kernel for the GraalVM (python, js, ruby, R)
 # https://github.com/hpi-swa/ipolyglot
 
-# Java
-# https://github.com/scijava/scijava-jupyter-kernel
-# https://github.com/SpencerPark/IJava
-
-
 
 is-debug || (banner 'JupyterLab Building' && jupyter-lab-build)
 
 banner 'Conda fix permissions' && fix-conda-permissions
 
+banner 'Cleanup' && conda-clean && conda-cache-clean && apt-clean
+
 banner 'Setup JupyterHub'
-pip-install jinja2 click && \
-cmd cp -r /tmp/templates /root/ && \
-cmd cp /tmp/functions.sh /root/ && \
-cmd cp /tmp/render-templates.py /usr/bin/render-templates && \
-cmd cp /tmp/docker-entrypoint.sh /
+  pip-install jinja2 click && \
+  cmd cp -r /tmp/templates /root/ && \
+  cmd cp /tmp/functions.sh /root/ && \
+  cmd cp /tmp/render-templates.py /usr/bin/render-templates && \
+  cmd cp /tmp/docker-entrypoint.sh /
 
 #banner 'Installing Apache Airflow'
 #apt-build freetds-dev libkrb5-dev libsasl2-dev libssl-dev libffi-dev libpq-dev

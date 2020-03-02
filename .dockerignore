@@ -44,3 +44,4 @@ celerybeat-schedule
 
 # conda
 /home/*/.cache
+/root/.cache

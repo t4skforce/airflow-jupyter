@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 import click
 import os
+import stat
 import json
+import re
 from jinja2 import Environment, Undefined, FileSystemLoader, BaseLoader, select_autoescape
 from jinja2.lexer import Token
 from jinja2.ext import Extension
@@ -33,7 +35,7 @@ class PythonEscapeExtension(Extension):
     This will ensure that all injected values are converted to YAML.
     """
     def filter_stream(self, stream):
-        if not stream.name.endswith('.py'):
+        if not stream.name or not stream.name.endswith('.py'):
             for token in stream:
                 yield token
         else:
@@ -69,8 +71,6 @@ def transform_config(config={}):
         for key,value in config.items():
             if isinstance(value,dict):
                 ret_dict[key] = value = transform_config(value)
-            if isinstance(value, list):
-                value = [x for x in [render_value(e,env=os.environ) for e in value] if x]
             if key.endswith(':set') and isinstance(value, list):
                 value = set(value) if value else set()
                 ret_dict[':'.join(key.split(':')[:-1])]=set(value) if value else set()
@@ -102,7 +102,7 @@ def load_conf_files(templates,target_file,conf_file):
         except:
             log.exception("error loading {}".format(system_conf))
     else:
-        log.error('file does not exist! {}'.format(system_conf))
+        log.warning('file does not exist! {}'.format(system_conf))
 
     # load conf file direct beside target file
     target_conf = os.path.abspath('{}.config.json'.format(target_file))
@@ -139,7 +139,7 @@ def load_conf_files(templates,target_file,conf_file):
             except:
                 log.exception("error loading {}".format(user_override))
         else:
-            log.error('file does not exist! {}'.format(conf_file))
+            log.warning('file does not exist! {}'.format(conf_file))
 
     # LOAD ENV_JSON
     if os.getenv('{}_JSON'.format(env_var)):
@@ -147,6 +147,12 @@ def load_conf_files(templates,target_file,conf_file):
         log.info("loaded {}".format('{}_JSON'.format(env_var)))
 
     return config
+
+def render(env,template,ctx):
+    rendered = template.render(**ctx)
+    if re.search('\{\{.*?\}\}',rendered):
+        rendered = env.from_string(rendered).render(**ctx)
+    return rendered
 
 @click.command()
 @click.argument('templates', default="/root/templates" ,type=click.Path(exists=True))
@@ -161,6 +167,7 @@ def main(templates,stdout,output):
     )
     for template in env.list_templates():
         if not template.endswith('.config.json'):
+            source_file = os.path.abspath(os.path.join(templates,template))
             target_file = os.path.abspath(os.path.join(output,template))
             path, filename = os.path.split(template)
             conf_file = os.path.join(path,'{}.config.json'.format(filename))
@@ -169,14 +176,17 @@ def main(templates,stdout,output):
             log.info("rendering {} -> {}".format(template,target_file))
             target_directory = os.path.dirname(target_file)
             if stdout:
-                print(template.render(config=transform_config(config)))
+                print("#"*10,target_file,"#"*10)
+                print(render(env=env,template=template,ctx={"config":transform_config(config),"env":os.environ}))
                 continue
             else:
                 if not os.path.exists(target_directory):
                     os.makedirs(target_directory)
                 with open(target_file,'w') as out_file:
-                    out_file.write(template.render(config=transform_config(config)))
-                log.info("rendered {}".format(target_file))
+                    out_file.write(render(env=env,template=template,ctx={"config":transform_config(config),"env":os.environ}))
+                perms = stat.S_IMODE(os.lstat(source_file).st_mode)
+                os.chmod(target_file,perms)
+                log.info("rendered {} ({})".format(target_file,perms))
 
 if __name__ == '__main__':
     main()
