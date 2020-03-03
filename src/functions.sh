@@ -73,34 +73,6 @@ function user-exits()
     grep -q "^${u}" $PASSWD_FILE && return $TRUE || return $FALSE
 }
 ##################################################################
-# Purpose: add user to system
-# Environment:
-#   $SHELL -> logon shell
-#   $USER_UID -> user id
-#   $USER_GID -> group id
-#   $USER_NAME -> username
-# Return: True or False
-##################################################################
-function add-user()
-{
-  is-root || die 'can only be executed as root'
-  cmd useradd --create-home --shell ${SHELL} --uid ${USER_UID} --gid ${USER_GID} --groups sudo,conda --home "/home/${USER_NAME}" ${USER_NAME} \
-  && echo "${USER_NAME}:${USER_NAME}" | chpasswd \
-  && cmd chown -R ${USER_NAME} "/home/${USER_NAME}"
-  return $?
-}
-##################################################################
-# Purpose: update exsisint user uid and gid
-##################################################################
-function update-user()
-{
-  is-root || die 'can only be executed as root'
-  local OUID=$(id -u ${USER_NAME})
-  local OGID=$(id -g ${USER_NAME})
-  [ "$OUID" != "$USER_UID" ] && cmd usermod -u $USER_UID $USER_NAME && find / -user $OUID -exec chown -h $USER_NAME {} \;
-  [ "$OGID" != "$USER_GID" ] && cmd groupmod -g $USER_GID $USER_NAME && find / -group $OGID -exec chgrp -h $USER_GID {} \;
-}
-##################################################################
 # Purpose: check if apt-get update was wriggered
 ##################################################################
 function is-apt-updated()
