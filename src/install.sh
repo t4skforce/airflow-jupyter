@@ -37,7 +37,6 @@ pip-install -U pip \
 banner 'Setup User'
 # general env settings
 cmd sed -i 's/^#force_color_prompt=yes/force_color_prompt=yes/' /etc/skel/.bashrc && \
-  cmd echo "auth requisite pam_deny.so" >> /etc/pam.d/su && \
   cmd sed -i.bak -e 's/^%admin/#%admin/' /etc/sudoers && \
   cmd echo "$USER_NAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/notebook && \
   chmod g+w /etc/passwd
