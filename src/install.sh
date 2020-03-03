@@ -184,8 +184,8 @@ apt-install libgtk2.0-0 libgconf-2-4 xvfb xauth fuse desktop-file-utils chromium
   conda-install openssl psutil requests ipywidgets && \
   jupyter-lab-install jupyterlab-plotly && \
   jupyter-lab-install plotlywidget && \
-  (set -xe; python3 -c 'import plotly.io as pio;pio.orca.config.use_xvfb = True;pio.orca.config.save();') && \
-  jupyter-lab-install jupyterlab-chart-editor
+  (set -xe; python3 -c 'import plotly.io as pio;pio.orca.config.use_xvfb = True;pio.orca.config.save();')
+#jupyter-lab-install jupyterlab-chart-editor
 
 
 banner 'JupyterLab Celltests install'
@@ -267,10 +267,10 @@ banner 'jupyter Kernel (xeus-cling C++) install'
 conda-install xeus-cling xtensor xtensor-blas
 
 
-banner 'jupyter Kernel (JS/TS) install'
+#banner 'jupyter Kernel (JS/TS) install'
 # https://github.com/yunabe/tslab
-  cmd npm install tslab && \
-  cmd tslab install --python=python3
+#  cmd npm install tslab && \
+#  cmd tslab install --python=python3
 
 
 #banner 'jupyter Kernel (R) install'

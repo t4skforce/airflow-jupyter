@@ -13,14 +13,8 @@
   },
   "LocalAuthenticator":{
     "add_user_cmd":[
-      "adduser",
-      "--create-home",
-      "-q",
-      "--gecos", "\"\"",
-      "--shell", "{{env.SHELL|default('/bin/bash',true)}}",
-      "--groups", "conda",
-      "--home", "/home/USERNAME",
-      "--disabled-password"
+      "add-hub-user.sh",
+      "USERNAME"
     ],
     "create_system_users":true
   },
