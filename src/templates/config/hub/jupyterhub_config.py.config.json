@@ -9,7 +9,8 @@
     "cleanup_servers": true
   },
   "Authenticator":{
-    "admin_users:set":["{{env.USER_NAME|default('admin',true)}}"]
+    "admin_users:set":["{{env.USER_NAME|default('admin',true)}}"],
+    "delete_invalid_users":true
   },
   "LocalAuthenticator":{
     "add_user_cmd":[
