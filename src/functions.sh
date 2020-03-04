@@ -157,6 +157,27 @@ function gen-locales()
   return $?
 }
 ##################################################################
+# Purpose: generate random password
+##################################################################
+function randpw()
+{
+  < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-16};echo;
+}
+##################################################################
+# Purpose: add inital admin user
+##################################################################
+function admin-system-user()
+{
+  USER_PASS=${USER_PASS-$(randpw)}
+  user-exits ${USER_NAME} || \
+    useradd --gid $USER_GID --uid $USER_UID --groups conda,sudo --shell $SHELL --create-home --home "/home/$USER_NAME" $USER_NAME && \
+    echo "${USER_NAME}:${USER_PASS}" | chpasswd && \
+    mkdir -p "/home/$USER_NAME/work" && \
+    (set -xe; cd /home/$USER_NAME/work && git init) && \
+    chown -R $USER_NAME:$USER_GID "/home/$USER_NAME/work" && \
+    banner "Username: '$USER_NAME' Password: '$USER_PASS'"
+}
+##################################################################
 # Purpose: run py.test against a notebook
 # Arguments:
 #   $@ -> py.test --nbval-lax $@
@@ -373,7 +394,7 @@ function jupyter-notebook-enable()
 ##################################################################
 function conda-clean()
 {
-  cmd conda build purge-all && \
+  cmd conda clean --all -f -y && \
   return $TRUE || return $FALSE
 }
 ##################################################################

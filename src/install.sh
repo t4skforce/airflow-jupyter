@@ -19,6 +19,8 @@ apt-install build-essential \
   bzip2 \
   ca-certificates \
   sudo \
+  nano \
+  vim \
   locales \
   fonts-liberation
 gen-locales
@@ -37,6 +39,7 @@ pip-install -U pip \
 banner 'Setup User'
 # general env settings
 cmd sed -i 's/^#force_color_prompt=yes/force_color_prompt=yes/' /etc/skel/.bashrc && \
+  cmd echo "auth requisite pam_deny.so" >> /etc/pam.d/su && \
   cmd sed -i.bak -e 's/^%admin/#%admin/' /etc/sudoers && \
   cmd echo "$USER_NAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/notebook && \
   chmod g+w /etc/passwd
@@ -45,10 +48,9 @@ cmd sed -i 's/^#force_color_prompt=yes/force_color_prompt=yes/' /etc/skel/.bashr
 banner 'JupyterLab install'
 conda-install notebook jupyterhub 'jupyterlab<2.0.0' && \
   cmd rm -rf /root/.jupyter && \
-  cmd mkdir -p /root/.jupyter && \
   cmd ln -s /opt/conda/etc/jupyter /root/.jupyter && \
   cmd rm -rf /root/.local/share/jupyter && \
-  cmd mkdir -p /root/.local/share/jupyter && \
+  cmd mkdir -p /root/.local/share && \
   cmd ln -s /opt/conda/share/jupyter /root/.local/share/jupyter
 
 
@@ -206,7 +208,15 @@ jupyter-lab-install @ijmbarr/jupyterlab_spellchecker
 banner 'JupyterLab Language Server Protocol install'
 # https://github.com/krassowski/jupyterlab-lsp
 pip-install jupyter-lsp && \
-  conda-install python-language-server && \
+  pip-install python-language-server[all] pyls-mypy pyls-black pyls-isort && \
+  cmd npm install -g bash-language-server \
+    vscode-css-languageserver-bin \
+    dockerfile-language-server-nodejs \
+    vscode-html-languageserver-bin \
+    javascript-typescript-langserver \
+    vscode-json-languageserver-bin \
+    yaml-language-server \
+    unified-language-server
   jupyter-lab-install @krassowski/jupyterlab-lsp
 
 
@@ -266,10 +276,10 @@ banner 'jupyter Kernel (xeus-cling C++) install'
 conda-install xeus-cling xtensor xtensor-blas
 
 
-#banner 'jupyter Kernel (JS/TS) install'
+banner 'jupyter Kernel (JS/TS) install'
 # https://github.com/yunabe/tslab
-#  cmd npm install tslab && \
-#  cmd tslab install --python=python3
+cmd npm install tslab -g -f && \
+cmd tslab install --python=python3
 
 
 #banner 'jupyter Kernel (R) install'
@@ -294,8 +304,8 @@ apt-install gnupg curl && \
   cmd curl -s https://packages.microsoft.com/config/debian/9/prod.list -o /etc/apt/sources.list.d/microsoft-prod.list && \
   apt-update && \
   apt-install dotnet-sdk-3.1 && \
-  cmd dotnet tool install -g dotnet-try && \
-  cmd /root/.dotnet/tools/dotnet-try jupyter install
+  cmd dotnet tool install dotnet-try --tool-path $CONDA_DIR/bin && \
+  cmd dotnet-try jupyter install
 
 
 # PHP

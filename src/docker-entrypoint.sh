@@ -2,6 +2,6 @@
 set -e
 source /root/functions.sh
 
-render-templates
+admin-system-user && render-templates
 
 exec "$@"
