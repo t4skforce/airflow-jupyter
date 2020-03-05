@@ -322,8 +322,6 @@ is-debug || (banner 'JupyterLab Building' && jupyter-lab-build)
 
 banner 'Conda fix permissions' && fix-conda-permissions
 
-banner 'Cleanup' && conda-clean && conda-cache-clean && apt-clean
-
 banner 'Setup JupyterHub'
   pip-install jinja2 click && \
   cmd cp -r /tmp/templates /root/ && \
@@ -340,3 +338,27 @@ banner 'Setup JupyterHub'
 #banner 'JupyterLab running Tests'
 #conda_install nbval
 #nbtest $HOME/work/examples/*.ipynb
+
+banner 'Cleanup'
+conda-clean
+conda-cache-clean
+apt-clean
+cmd rm -rf /var/log/* /var/tmp/* /var/cache/* /var/lib/apt/lists/* /var/lib/dpkg/*
+cmd rm -rf /etc/emacs/* /etc/init.d/* /etc/pulse/* /opt/conda/share/jupyter/lab/staging/*
+cmd rm -rf /usr/local/share/.cache/*
+cmd find / -depth -name ".git" -type d -exec rm -rf {} +
+cmd find / -depth -name ".cache" -type d -exec rm -rf {} +
+cmd find / -depth -name ".conda" -type d -exec rm -rf {} +
+cmd find / -depth -name ".npm" -type d -exec rm -rf {} +
+cmd find / -depth -name ".node-gyp" -type d -exec rm -rf {} +
+cmd find / -depth -name ".nuget" -type d -exec rm -rf {} +
+cmd find / -depth -name ".local" -type d -exec rm -rf {} +
+cmd find / -depth -name ".ipython" -type d -exec rm -rf {} +
+cmd find / -depth -name ".gem" -type d -exec rm -rf {} +
+cmd find / -depth -name ".config" -type d -exec rm -rf {} +
+cmd find / -depth -name ".dotnet" -type d -exec rm -rf {} +
+cmd find / -depth -name ".plotly" -type d -exec rm -rf {} +
+cmd find / -depth -name ".ipynb_checkpoints" -type d -exec rm -rf {} +
+cmd find / -depth -name "__pycache__" -type d -exec rm -rf {} +
+cmd find / -regex '^.*\.py[co]$' -delete
+cmd rm -rf /tmp/*

@@ -17,7 +17,7 @@ build:
 
 dive:
 	@echo "building things"
-	dive build --force-rm -t jupyterlab-airflow:latest --build-arg DEBUG=${DEBUG} .
+	dive jupyterlab-airflow:latest
 
 run:
 	@echo "runing things"
