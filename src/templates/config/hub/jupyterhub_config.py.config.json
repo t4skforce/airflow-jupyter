@@ -13,7 +13,7 @@
   },
   "LocalAuthenticator":{
     "add_user_cmd":[
-      "add-hub-user.sh",
+      "useradd-hub",
       "USERNAME"
     ],
     "create_system_users":true

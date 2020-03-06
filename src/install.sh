@@ -326,6 +326,7 @@ banner 'Setup JupyterHub'
   pip-install jinja2 click && \
   cmd cp -r /tmp/templates /root/ && \
   cmd cp /tmp/functions.sh /root/ && \
+  cmd cp /tmp/useradd-hub.sh /usr/bin/useradd-hub && \
   cmd cp /tmp/render-templates.py /usr/bin/render-templates && \
   cmd cp /tmp/docker-entrypoint.sh /
 
