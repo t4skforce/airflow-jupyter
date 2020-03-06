@@ -1,0 +1,5 @@
+{
+    // Shut down on close
+    // Shut down the session when closing the terminal.
+    "shutdownOnClose": true
+}

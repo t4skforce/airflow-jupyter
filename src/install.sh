@@ -46,7 +46,8 @@ cmd sed -i 's/^#force_color_prompt=yes/force_color_prompt=yes/' /etc/skel/.bashr
 
 # https://github.com/jupyter/docker-stacks/blob/master/base-notebook/Dockerfile
 banner 'JupyterLab install'
-conda-install notebook jupyterhub 'jupyterlab<2.0.0' && \
+apt-install inkscape texlive-base texlive-xetex && \
+  conda-install notebook jupyterhub 'jupyterlab<2.0.0' && \
   cmd rm -rf /root/.jupyter && \
   cmd ln -s /opt/conda/etc/jupyter /root/.jupyter && \
   cmd rm -rf /root/.local/share/jupyter && \
@@ -105,6 +106,11 @@ jupyter-lab-install @jupyter-widgets/jupyterlab-manager
 #banner 'JupyterLab jupyterlab_bokeh install'
 # https://github.com/bokeh/jupyter_bokeh
 #jupyter-lab-install jupyterlab_bokeh
+
+
+banner 'JupyterLab LaTeX install'
+pip-install jupyterlab_latex && \
+  jupyter-lab-install @jupyterlab/latex
 
 
 banner 'JupyterLab facets install'
@@ -205,21 +211,6 @@ banner 'JupyterLab spellchecker install'
 jupyter-lab-install @ijmbarr/jupyterlab_spellchecker
 
 
-banner 'JupyterLab Language Server Protocol install'
-# https://github.com/krassowski/jupyterlab-lsp
-pip-install jupyter-lsp && \
-  pip-install python-language-server[all] pyls-mypy pyls-black pyls-isort && \
-  cmd npm install -g bash-language-server \
-    vscode-css-languageserver-bin \
-    dockerfile-language-server-nodejs \
-    vscode-html-languageserver-bin \
-    javascript-typescript-langserver \
-    vscode-json-languageserver-bin \
-    yaml-language-server \
-    unified-language-server
-  jupyter-lab-install @krassowski/jupyterlab-lsp
-
-
 banner 'JupyterLab Code Formatter install'
 # https://github.com/ryantam626/jupyterlab_code_formatter
 conda-install black && \
@@ -266,6 +257,20 @@ pip-install jupyterlab-s3-browser && \
   jupyter-server-enable jupyterlab_s3_browser
 
 
+banner 'JupyterLab Language Server Protocol install'
+# https://github.com/krassowski/jupyterlab-lsp
+conda-install python-language-server r-languageserver && \
+  cmd npm install -g bash-language-server \
+    vscode-css-languageserver-bin \
+    dockerfile-language-server-nodejs \
+    vscode-html-languageserver-bin \
+    javascript-typescript-langserver \
+    vscode-json-languageserver-bin \
+    yaml-language-server \
+    unified-language-server
+jupyter-lab-install @krassowski/jupyterlab-lsp
+
+
 banner 'jupyter Kernel (beakerx) install'
 # http://beakerx.com/
 conda-install ipywidgets beakerx
@@ -282,10 +287,10 @@ cmd npm install tslab -g -f && \
 cmd tslab install --python=python3
 
 
-#banner 'jupyter Kernel (R) install'
-# apt-install fonts-dejavu unixodbc unixodbc-dev r-cran-rodbc gfortran gcc \
-# && cmd ln -s /bin/tar /bin/gtar \
-# && conda-install r-base r-caret r-crayon r-devtools r-forecast r-hexbin r-htmltools r-htmlwidgets r-irkernel r-nycflights13 r-plyr r-randomforest r-rcurl r-reshape2 r-rmarkdown r-rodbc r-rsqlite r-shiny r-tidyverse unixodbc r-e1071
+banner 'jupyter Kernel (R) install'
+apt-install fonts-dejavu unixodbc unixodbc-dev r-cran-rodbc gfortran gcc && \
+  cmd ln -s /bin/tar /bin/gtar && \
+  conda-install r-base r-caret r-crayon r-devtools r-forecast r-hexbin r-htmltools r-htmlwidgets r-irkernel r-nycflights13 r-plyr r-randomforest r-rcurl r-reshape2 r-rmarkdown r-rodbc r-rsqlite r-shiny r-tidyverse unixodbc r-e1071
 
 
 banner 'jupyter Kernel (Ruby) install'
@@ -317,7 +322,6 @@ apt-install gnupg curl && \
 # Jupyter kernel for the GraalVM (python, js, ruby, R)
 # https://github.com/hpi-swa/ipolyglot
 
-
 is-debug || (banner 'JupyterLab Building' && jupyter-lab-build)
 
 banner 'Conda fix permissions' && fix-conda-permissions
@@ -344,7 +348,7 @@ banner 'Cleanup'
 conda-clean
 conda-cache-clean
 apt-clean
-cmd rm -rf /var/log/* /var/tmp/* /var/cache/* /var/lib/apt/lists/* /var/lib/dpkg/*
+cmd rm -rf /var/log/* /var/tmp/* /var/cache/* /var/lib/apt/lists/*
 cmd rm -rf /etc/emacs/* /etc/init.d/* /etc/pulse/* /opt/conda/share/jupyter/lab/staging/*
 cmd rm -rf /usr/local/share/.cache/*
 cmd find / -depth -name ".git" -type d -exec rm -rf {} +

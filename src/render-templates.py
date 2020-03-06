@@ -102,7 +102,7 @@ def load_conf_files(templates,target_file,conf_file):
         except:
             log.exception("error loading {}".format(system_conf))
     else:
-        log.warning('file does not exist! {}'.format(system_conf))
+        log.debug('file does not exist! {}'.format(system_conf))
 
     # load conf file direct beside target file
     target_conf = os.path.abspath('{}.config.json'.format(target_file))
@@ -187,7 +187,7 @@ def main(templates,stdout,output):
     )
     for template in env.list_templates():
         if not template.endswith('.config.json'):
-            if template.startswith('.'): continue
+            if template.startswith('.home'): continue
             source_file = os.path.abspath(os.path.join(templates,template))
             target_file = os.path.abspath(os.path.join(output,template))
             save(stdout,render_with_config(env,templates,template,target_file),source_file,target_file)
