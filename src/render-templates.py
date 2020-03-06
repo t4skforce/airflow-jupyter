@@ -154,6 +154,26 @@ def render(env,template,ctx):
         rendered = env.from_string(rendered).render(**ctx)
     return rendered
 
+def render_with_config(env,templates,template,target_file):
+    path, filename = os.path.split(template)
+    conf_file = os.path.join(path,'{}.config.json'.format(filename))
+    config = load_conf_files(templates,target_file,conf_file)
+    return render(env=env,template=env.get_template(template),ctx={"config":transform_config(config),"env":os.environ})
+
+def save(stdout,rendered,source_file,target_file):
+    if stdout:
+        print("#"*10,target_file,"#"*10)
+        print(rendered)
+    else:
+        target_directory = os.path.dirname(target_file)
+        if not os.path.exists(target_directory):
+            os.makedirs(target_directory)
+        with open(target_file,'w') as out_file:
+            out_file.write(rendered)
+        perms = stat.S_IMODE(os.lstat(source_file).st_mode)
+        os.chmod(target_file,perms)
+        log.info("rendered {} ({})".format(target_file,perms))
+
 @click.command()
 @click.argument('templates', default="/root/templates" ,type=click.Path(exists=True))
 @click.option('--stdout/--no-stdout', default=False)
@@ -167,26 +187,11 @@ def main(templates,stdout,output):
     )
     for template in env.list_templates():
         if not template.endswith('.config.json'):
+            if template.startswith('.'): continue
             source_file = os.path.abspath(os.path.join(templates,template))
             target_file = os.path.abspath(os.path.join(output,template))
-            path, filename = os.path.split(template)
-            conf_file = os.path.join(path,'{}.config.json'.format(filename))
-            config = load_conf_files(templates,target_file,conf_file)
-            template = env.get_template(template)
-            log.info("rendering {} -> {}".format(template,target_file))
-            target_directory = os.path.dirname(target_file)
-            if stdout:
-                print("#"*10,target_file,"#"*10)
-                print(render(env=env,template=template,ctx={"config":transform_config(config),"env":os.environ}))
-                continue
-            else:
-                if not os.path.exists(target_directory):
-                    os.makedirs(target_directory)
-                with open(target_file,'w') as out_file:
-                    out_file.write(render(env=env,template=template,ctx={"config":transform_config(config),"env":os.environ}))
-                perms = stat.S_IMODE(os.lstat(source_file).st_mode)
-                os.chmod(target_file,perms)
-                log.info("rendered {} ({})".format(target_file,perms))
+            save(stdout,render_with_config(env,templates,template,target_file),source_file,target_file)
+
 
 if __name__ == '__main__':
     main()
