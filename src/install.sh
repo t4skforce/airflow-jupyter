@@ -291,7 +291,7 @@ banner 'jupyter Kernel (PHP) install'
 # https://github.com/Litipk/Jupyter-PHP
 apt-install php php-zmq curl && \
   cmd curl -s https://litipk.github.io/Jupyter-PHP-Installer/dist/jupyter-php-installer.phar -o jupyter-php-installer.phar && \
-  cmd php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" && \
+  cmd curl -s https://getcomposer.org/installer -o composer-setup.php && \
   cmd php composer-setup.php && \
   cmd php ./jupyter-php-installer.phar install && \
   cmd rm composer-setup.php && \
