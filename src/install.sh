@@ -55,17 +55,6 @@ apt-install inkscape texlive-base texlive-xetex && \
   cmd ln -s /opt/conda/share/jupyter /root/.local/share/jupyter
 
 
-#banner 'Install nb_conda'
-#conda-install  nb_conda
-#jupyter-notebook-install nb_conda --symlink
-#jupyter-notebook-enable nb_conda
-#jupyter-server-enable nb_conda
-
-
-banner 'JupyterHub Cluster install'
-conda-install ipyparallel
-cmd ipcluster nbextension enable
-
 # https://github.com/jupyter/docker-stacks/blob/master/scipy-notebook/Dockerfile
 banner 'JupyterLab ScyPy install'
 # ffmpeg for matplotlib anim
@@ -101,11 +90,6 @@ jupyter-notebook-enable widgetsnbextension
 banner 'JupyterLab Jupyter Widgets install'
 # https://github.com/jupyter-widgets/ipywidgets/tree/master/packages/jupyterlab-manager
 jupyter-lab-install @jupyter-widgets/jupyterlab-manager
-
-
-#banner 'JupyterLab jupyterlab_bokeh install'
-# https://github.com/bokeh/jupyter_bokeh
-#jupyter-lab-install jupyterlab_bokeh
 
 
 banner 'JupyterLab LaTeX install'
@@ -154,11 +138,6 @@ conda-install jupyter-archive
 banner 'JupyterLab metadata/dataregistry install'
 # https://github.com/jupyterlab/jupyterlab-metadata-service
 jupyter-lab-install @jupyterlab/metadata-extension @jupyterlab/dataregistry-extension
-
-
-#banner 'JupyterLab celltags install'
-# https://github.com/jupyterlab/jupyterlab-celltags
-#jupyter-lab-install @jupyterlab/celltags
 
 
 banner 'JupyterLab geojson install'
@@ -233,11 +212,6 @@ banner 'JupyterLab flake8 install'
 # https://github.com/mlshapiro/jupyterlab-flake8
 conda-install flake8
 jupyter-lab-install jupyterlab-flake8
-
-
-banner 'JupyterLab filetree install'
-# https://github.com/youngthejames/jupyterlab_filetree
-jupyter-lab-install jupyterlab_filetree
 
 
 banner 'JupyterLab python-file install'
@@ -316,28 +290,30 @@ apt-install gnupg curl && \
 banner 'jupyter Kernel (PHP) install'
 # https://github.com/Litipk/Jupyter-PHP
 apt-install php php-zmq curl && \
-  curl -s https://litipk.github.io/Jupyter-PHP-Installer/dist/jupyter-php-installer.phar -o jupyter-php-installer.phar && \
-  php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" && \
-  php composer-setup.php && \
-  php ./jupyter-php-installer.phar install && \
-  rm composer-setup.php && \
-  rm ./jupyter-php-installer.phar
+  cmd curl -s https://litipk.github.io/Jupyter-PHP-Installer/dist/jupyter-php-installer.phar -o jupyter-php-installer.phar && \
+  cmd php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" && \
+  cmd php composer-setup.php && \
+  cmd php ./jupyter-php-installer.phar install && \
+  cmd rm composer-setup.php && \
+  cmd rm ./jupyter-php-installer.phar
 
 
 banner 'jupyter Kernel (GO) install'
 # https://github.com/yunabe/lgo
 apt-install libzmq3-dev pkg-config && \
-  cmd curl https://dl.google.com/go/go1.14.linux-amd64.tar.gz -o go.tar.gz && \
+  cmd curl -s https://dl.google.com/go/go1.9.7.linux-amd64.tar.gz -o go.tar.gz && \
   cmd tar -xvf go.tar.gz && \
   cmd rm -f go.tar.gz && \
   cmd mv go /usr/local && \
   cmd mkdir -p $GOPATH && \
   cmd go get github.com/yunabe/lgo/cmd/lgo && \
   cmd go get -d github.com/yunabe/lgo/cmd/lgo-internal && \
+  cmd go get -u github.com/nfnt/resize gonum.org/v1/gonum/... gonum.org/v1/plot/... github.com/wcharczuk/go-chart && \
   cmd mkdir -p $LGOPATH && \
   cmd lgo install && \
+  cmd lgo installpkg github.com/nfnt/resize gonum.org/v1/gonum/... gonum.org/v1/plot/... github.com/wcharczuk/go-chart && \
   cmd python $(go env GOPATH)/src/github.com/yunabe/lgo/bin/install_kernel && \
-  cmd jupyter-lab-install @yunabe/lgo_extension
+  jupyter-lab-install @yunabe/lgo_extension
 
 
 is-debug || (banner 'JupyterLab Building' && jupyter-lab-build)
