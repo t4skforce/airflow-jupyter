@@ -55,11 +55,11 @@ apt-install inkscape texlive-base texlive-xetex && \
   cmd ln -s /opt/conda/share/jupyter /root/.local/share/jupyter
 
 
-banner 'Install nb_conda'
-conda-install  nb_conda
-jupyter-notebook-install nb_conda --symlink
-jupyter-notebook-enable nb_conda
-jupyter-server-enable nb_conda
+#banner 'Install nb_conda'
+#conda-install  nb_conda
+#jupyter-notebook-install nb_conda --symlink
+#jupyter-notebook-enable nb_conda
+#jupyter-server-enable nb_conda
 
 
 banner 'JupyterHub Cluster install'
@@ -313,14 +313,32 @@ apt-install gnupg curl && \
   cmd dotnet-try jupyter install
 
 
-# PHP
+banner 'jupyter Kernel (PHP) install'
 # https://github.com/Litipk/Jupyter-PHP
+apt-install php php-zmq curl && \
+  curl -s https://litipk.github.io/Jupyter-PHP-Installer/dist/jupyter-php-installer.phar -o jupyter-php-installer.phar && \
+  php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" && \
+  php composer-setup.php && \
+  php ./jupyter-php-installer.phar install && \
+  rm composer-setup.php && \
+  rm ./jupyter-php-installer.phar
 
-# Go
+
+banner 'jupyter Kernel (GO) install'
 # https://github.com/yunabe/lgo
+apt-install libzmq3-dev pkg-config && \
+  cmd curl https://dl.google.com/go/go1.14.linux-amd64.tar.gz -o go.tar.gz && \
+  cmd tar -xvf go.tar.gz && \
+  cmd rm -f go.tar.gz && \
+  cmd mv go /usr/local && \
+  cmd mkdir -p $GOPATH && \
+  cmd go get github.com/yunabe/lgo/cmd/lgo && \
+  cmd go get -d github.com/yunabe/lgo/cmd/lgo-internal && \
+  cmd mkdir -p $LGOPATH && \
+  cmd lgo install && \
+  cmd python $(go env GOPATH)/src/github.com/yunabe/lgo/bin/install_kernel && \
+  cmd jupyter-lab-install @yunabe/lgo_extension
 
-# Jupyter kernel for the GraalVM (python, js, ruby, R)
-# https://github.com/hpi-swa/ipolyglot
 
 is-debug || (banner 'JupyterLab Building' && jupyter-lab-build)
 

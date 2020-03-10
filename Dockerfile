@@ -6,12 +6,15 @@ ENV USER_NAME="admin" \
   USER_UID="1000" \
   USER_GID="100" \
   CONDA_DIR=/opt/conda \
+  GOROOT=/usr/local/go \
+  GOPATH=/opt/conda/go \
+  LGOPATH=/opt/conda/lgo \
   CONFIG_PATH=/config
 
 ENV DEBIAN_FRONTEND=noninteractive \
   TERM=linux \
   SHELL=/bin/bash \
-  PATH=$CONDA_DIR/bin:$PATH \
+  PATH=$CONDA_DIR/bin:$GOPATH/bin:$GOROOT/bin:/dotnet/tools/:$PATH \
   HUB_IP='0.0.0.0' \
   HUB_PORT=8000
 

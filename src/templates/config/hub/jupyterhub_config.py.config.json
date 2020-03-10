@@ -6,7 +6,9 @@
     "db_url":"{{env.CONFIG_PATH|default('/config',true)}}/hub/jupyterhub.sqlite",
     "confirm_no_ssl":true,
     "cleanup_proxy":true,
-    "cleanup_servers": true
+    "cleanup_servers": true,
+    "allow_named_servers": true,
+    "named_server_limit_per_user": 5
   },
   "Authenticator":{
     "admin_users:set":["{{env.USER_NAME|default('admin',true)}}"]
@@ -20,6 +22,16 @@
   },
   "Spawner":{
     "default_url":"/lab",
-    "notebook_dir":"/home/{username}/work"
+    "notebook_dir":"/home/{username}/work",
+    "env_keep":[],
+    "environment": {
+      "CONFIG_PATH":"{{env.CONFIG_PATH|default('/config',true)}}",
+      "CONDA_DIR":"{{env.CONDA_DIR|default('/opt/conda',true)}}",
+      "DOTNET_TRY_CLI_TELEMETRY_OPTOUT":1,
+      "GOROOT":"{{env.GOROOT|default('/usr/local/go',true)}}",
+      "GOPATH":"{{env.GOPATH|default('/opt/conda/go',true)}}",
+      "LGOPATH":"{{env.LGOPATH|default('/opt/conda/lgo',true)}}",
+      "PATH":"{{env.CONDA_DIR|default('/opt/conda',true)}}/bin:{{env.GOPATH|default('/opt/conda/go',true)}}/bin:{{env.GOROOT|default('/usr/local/go',true)}}/bin:/dotnet/tools/:{{env.PATH|default('/usr/local/bin:/usr/bin:/bin:/usr/local/sbin',true)}}"
+    }
   }
 }
