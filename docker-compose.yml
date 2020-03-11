@@ -1,4 +1,98 @@
 version: 2
+
 services:
+  redis:
+    container_name: redis
+    image: redis
+    restart: unless-stopped
+    networks:
+      - jupyterlab-airflow
+
+  postgres:
+    container_name: postgres
+    image: postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    networks:
+      - jupyterlab-airflow
+    volumes:
+      - jupyter-db:/var/lib/postgresql/data/pgdata
+
+  airflow-webserver:
+    container_name: airflow-webserver
+    image: t4skforce/jupyterlab-airflow:latest
+    restart: unless-stopped
+    depends_on:
+      - redis
+      - postgres
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    ports:
+      - 127.0.0.1:8080:8080
+    networks:
+      - jupyterlab-airflow
+    volumes:
+      - jupyterhub-config:/config
+      - jupyter-dags:/usr/local/airflow/dags
+      - jupyter-plugins:/usr/local/airflow/plugins
+    command: airflow webserver
+
+  celery-flower:
+    container_name: flower
+    image: t4skforce/jupyterlab-airflow:latest
+    restart: unless-stopped
+    depends_on:
+      - redis
+    ports:
+      - 127.0.0.1:5555:5555
+    networks:
+      - jupyterlab-airflow
+
+  airflow-scheduler:
+    container_name: scheduler
+    image: t4skforce/jupyterlab-airflow:latest
+    restart: unless-stopped
+    depends_on:
+      - airflow-webserver
+    volumes:
+      - jupyterhub-config:/config
+      - jupyter-dags:/usr/local/airflow/dags
+      - jupyter-plugins:/usr/local/airflow/plugins
+    command: airflow scheduler
+
+  airflow-worker:
+    container_name: worker
+    image: t4skforce/jupyterlab-airflow:latest
+    restart: unless-stopped
+    depends_on:
+      - airflow-webserver
+    volumes:
+      - jupyterhub-config:/config
+      - jupyter-dags:/usr/local/airflow/dags
+      - jupyter-plugins:/usr/local/airflow/plugins
+    command: airflow worker
+
   jupyterhub:
-    # TODO
+    container_name: jupyterhub
+    image: t4skforce/jupyterlab-airflow:latest
+    restart: unless-stopped
+    environment:
+      - DOCKER_NETWORK_NAME: jupyterhub_network
+    ports:
+      - 127.0.0.1:10000:8000
+    networks:
+      - jupyterlab-airflow
+    volumes:
+      - jupyterhub-config:/config
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    command: jupyter hub
+
+networks:
+  jupyterlab-airflow:
+    name: jupyterlab-airflow

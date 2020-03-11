@@ -34,7 +34,16 @@ install-conda
 pip-install -U pip \
   setuptools \
   wheel \
-  cython
+  cython \
+  requests \
+  pyquery \
+  jinja2 \
+  click
+
+banner 'Setup Binaries and Tools'
+    cmd mv render-templates.py /usr/bin/render-templates && \
+    cmd render-templates ./system/ / && \
+    cmd mv docker-entrypoint.sh /
 
 banner 'Setup User'
 # general env settings
@@ -289,50 +298,36 @@ apt-install gnupg curl && \
 
 banner 'jupyter Kernel (PHP) install'
 # https://github.com/Litipk/Jupyter-PHP
-apt-install php php-zmq curl && \
-  cmd curl -s https://litipk.github.io/Jupyter-PHP-Installer/dist/jupyter-php-installer.phar -o jupyter-php-installer.phar && \
-  cmd curl -s https://getcomposer.org/installer -o composer-setup.php && \
-  cmd php composer-setup.php && \
-  cmd php ./jupyter-php-installer.phar install && \
-  cmd rm composer-setup.php && \
-  cmd rm ./jupyter-php-installer.phar
+apt-install php php-zmq curl
+cmd curl -s https://litipk.github.io/Jupyter-PHP-Installer/dist/jupyter-php-installer.phar -o jupyter-php-installer.phar
+cmd curl -s https://getcomposer.org/installer -o composer-setup.php
+cmd php composer-setup.php
+cmd php ./jupyter-php-installer.phar install
+cmd rm composer-setup.php
+cmd rm ./jupyter-php-installer.phar
 
 
 banner 'jupyter Kernel (GO) install'
-# https://github.com/yunabe/lgo
-apt-install libzmq3-dev pkg-config && \
-  cmd curl -s https://dl.google.com/go/go1.9.7.linux-amd64.tar.gz -o go.tar.gz && \
-  cmd tar -xvf go.tar.gz && \
-  cmd rm -f go.tar.gz && \
-  cmd mv go /usr/local && \
-  cmd mkdir -p $GOPATH && \
-  cmd go get github.com/yunabe/lgo/cmd/lgo && \
-  cmd go get -d github.com/yunabe/lgo/cmd/lgo-internal && \
-  cmd go get -u github.com/nfnt/resize gonum.org/v1/gonum/... gonum.org/v1/plot/... github.com/wcharczuk/go-chart && \
-  cmd mkdir -p $LGOPATH && \
-  cmd lgo install && \
-  cmd lgo installpkg github.com/nfnt/resize gonum.org/v1/gonum/... gonum.org/v1/plot/... github.com/wcharczuk/go-chart && \
-  cmd python $(go env GOPATH)/src/github.com/yunabe/lgo/bin/install_kernel && \
-  jupyter-lab-install @yunabe/lgo_extension
+# https://github.com/gopherdata/gophernotes
+cmd curl -s $(go-url) -o go.tar.gz
+cmd tar -xvf go.tar.gz && cmd rm -f go.tar.gz
+cmd mv go /usr/local
+cmd mkdir -p $GOPATH
+cmd go get github.com/gopherdata/gophernotes
+export GOPHERKERNEL=$CONDA_DIR/share/jupyter/kernels/gophernotes
+cmd mkdir -p $GOPHERKERNEL
+cmd cp $(go env GOPATH)/src/github.com/gopherdata/gophernotes/kernel/* $GOPHERKERNEL/
 
 
 is-debug || (banner 'JupyterLab Building' && jupyter-lab-build)
 
+banner 'Installing Apache Airflow'
+apt-build freetds-dev libkrb5-dev libsasl2-dev libssl-dev libffi-dev libpq-dev
+apt-install freetds-bin default-libmysqlclient-dev libsasl2-dev
+pip-install 'redis==3.2'
+pip-install apache-airflow[all]
+
 banner 'Conda fix permissions' && fix-conda-permissions
-
-banner 'Setup JupyterHub'
-  pip-install jinja2 click && \
-  cmd cp -r /tmp/templates /root/ && \
-  cmd cp /tmp/functions.sh /root/ && \
-  cmd cp /tmp/useradd-hub.sh /usr/bin/useradd-hub && \
-  cmd cp /tmp/render-templates.py /usr/bin/render-templates && \
-  cmd cp /tmp/docker-entrypoint.sh /
-
-#banner 'Installing Apache Airflow'
-#apt-build freetds-dev libkrb5-dev libsasl2-dev libssl-dev libffi-dev libpq-dev
-#apt-install freetds-bin default-libmysqlclient-dev libsasl2-dev
-#pip-install 'redis==3.2'
-#pip-install apache-airflow[all]
 
 #banner 'JupyterLab running Tests'
 #conda_install nbval

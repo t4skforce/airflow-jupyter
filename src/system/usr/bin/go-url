@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+import sys
+import requests
+from pyquery import PyQuery as pq
+
+url=pq(requests.get('https://golang.org/dl/').content)('a[href$=".linux-amd64.tar.gz"]').attr("href")
+
+if url:
+  print(url)
+  exit(0)
+else:
+  print("url not found!",file=sys.stderr)
+  exit(1)

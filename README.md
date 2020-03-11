@@ -24,3 +24,13 @@ groupmod -g 3000 foo
 find / -group 2000 -exec chgrp -h foo {} \;
 find / -user 1005 -exec chown -h foo {} \;
 ```
+
+## Oauth2 Provider
+* (ORY Hydra)[https://github.com/ory/hydra]
+* (OAuth + JupyterHub Authenticator = OAuthenticator)[https://github.com/jupyterhub/oauthenticator/blob/master/oauthenticator/generic.py]
+
+## Docker Spawner
+* (dockerspawner)[https://github.com/jupyterhub/dockerspawner]
+
+## Airflow
+* (Airflow Celery)[https://github.com/puckel/docker-airflow/blob/master/docker-compose-CeleryExecutor.yml]

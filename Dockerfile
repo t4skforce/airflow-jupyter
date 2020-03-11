@@ -8,7 +8,6 @@ ENV USER_NAME="admin" \
   CONDA_DIR=/opt/conda \
   GOROOT=/usr/local/go \
   GOPATH=/opt/conda/go \
-  LGOPATH=/opt/conda/lgo \
   CONFIG_PATH=/config
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -23,8 +22,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
 ARG DEBUG=false
 
 USER root
-ADD src /tmp/
-WORKDIR /tmp/
+ADD src /root/
+WORKDIR /root/
 RUN ./install.sh
 
 WORKDIR /root
